@@ -34,6 +34,22 @@ void Console::Init(Local<Context> context) {
     }
 }
 
+void Console::SplitAndLogInChunks(std::string message) {
+    auto messageLength = message.length();
+    int maxStringLength = 1000; // technically 1024, but let's have some room :)
+
+    if (messageLength < maxStringLength) {
+        // print normally
+        Log("%s", message.c_str());
+    } else {
+        // split into chunks
+        for (int i = 0; i < messageLength; i += maxStringLength) {
+            std::string messagePart = message.substr(i, maxStringLength);
+            Log("%s", messagePart.c_str());
+        }
+    }
+}
+
 void Console::LogCallback(const FunctionCallbackInfo<Value>& args) {
     // TODO: implement 'forceLog' override option like android has, to force logs in prod if desired
     if (!RuntimeConfig.LogToSystemConsole) {
@@ -61,7 +77,22 @@ void Console::LogCallback(const FunctionCallbackInfo<Value>& args) {
     std::string level = VerbosityToInspectorVerbosity(verbosityLevel);
     v8_inspector::V8LogAgentImpl::EntryAdded(msgToLog, level, "", 0);
     std::string msgWithVerbosity = "CONSOLE " + verbosityLevelUpper + ": " + msgToLog;
-    Log("%s", msgWithVerbosity.c_str());
+
+    SplitAndLogInChunks(msgWithVerbosity);
+    // //Log("%s", msgWithVerbosity.c_str());
+    // auto messageLength = msgWithVerbosity.length();
+    // int maxStringLength = 1000; // technically 1024, but let's have some room :)
+
+    // if (messageLength < maxStringLength) {
+    //     // print normally
+    //     Log("%s", msgWithVerbosity.c_str());
+    // } else {
+    //     // split into chunks
+    //     for (int i = 0; i < messageLength; i += maxStringLength) {
+    //         std::string messagePart = msgWithVerbosity.substr(i, maxStringLength);
+    //         Log("%s", messagePart.c_str());
+    //     }
+    // }
 }
 
 void Console::AssertCallback(const FunctionCallbackInfo<Value>& args) {
@@ -86,7 +117,9 @@ void Console::AssertCallback(const FunctionCallbackInfo<Value>& args) {
 
         std::string log = ss.str();
         v8_inspector::V8LogAgentImpl::EntryAdded(log, "error", "", 0);
-        Log("%s", log.c_str());
+        
+        SplitAndLogInChunks(log);
+        // Log("%s", log.c_str());
     }
 }
 
@@ -161,7 +194,8 @@ void Console::DirCallback(const FunctionCallbackInfo<Value>& args) {
     std::string verbosityLevel = tns::ToString(isolate, data);
     std::string level = VerbosityToInspectorVerbosity(verbosityLevel);
     v8_inspector::V8LogAgentImpl::EntryAdded(msgToLog, level, "", 0);
-    Log("%s", msgToLog.c_str());
+    SplitAndLogInChunks(msgToLog);
+    // Log("%s", msgToLog.c_str());
 }
 
 void Console::TimeCallback(const FunctionCallbackInfo<Value>& args) {
@@ -225,7 +259,8 @@ void Console::TimeEndCallback(const FunctionCallbackInfo<Value>& args) {
     std::string level = VerbosityToInspectorVerbosity(verbosityLevel);
     std::string msgToLog = ss.str();
     v8_inspector::V8LogAgentImpl::EntryAdded(msgToLog, level, "", 0);
-    Log("%s", msgToLog.c_str());
+    SplitAndLogInChunks(msgToLog);
+    // Log("%s", msgToLog.c_str());
 }
 
 void Console::AttachLogFunction(Local<Context> context, Local<Object> console, const std::string name, v8::FunctionCallback callback) {
